@@ -41,7 +41,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(null, true); // Permissive for production web deployment
+        callback(null, true);
       }
     },
     credentials: true,
@@ -63,7 +63,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
-app.get(['/api/health', '/health'], (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -71,36 +71,19 @@ app.get(['/api/health', '/health'], (req, res) => {
   });
 });
 
-// API Routes (Mounted under /api and root aliases for seamless proxy compatibility)
+// Strict REST API Routes (all routes prefixed with /api)
 app.use('/api/auth', authRoutes);
-app.use('/auth', authRoutes);
-
 app.use('/api/users', userRoutes);
-app.use('/users', userRoutes);
-
 app.use('/api/jobs', jobRoutes);
-app.use('/jobs', jobRoutes);
-
 app.use('/api/applications', applicationRoutes);
-app.use('/applications', applicationRoutes);
-
 app.use('/api/stats', statsRoutes);
-app.use('/stats', statsRoutes);
 
 // Serve frontend build in production mode if packaged together
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../client/dist');
   app.use(express.static(clientDist));
   app.get('*', (req, res, next) => {
-    if (
-      req.originalUrl.startsWith('/api') ||
-      req.originalUrl.startsWith('/auth') ||
-      req.originalUrl.startsWith('/users') ||
-      req.originalUrl.startsWith('/jobs') ||
-      req.originalUrl.startsWith('/applications') ||
-      req.originalUrl.startsWith('/stats') ||
-      req.originalUrl.startsWith('/uploads')
-    ) {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
       return next();
     }
     res.sendFile(path.join(clientDist, 'index.html'));
