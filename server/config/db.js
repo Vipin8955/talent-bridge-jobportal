@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const dns = require('dns');
 
-// Configure reliable DNS servers to resolve MongoDB Atlas SRV records on Windows
+// Configure reliable DNS servers to resolve MongoDB Atlas SRV records on cloud/Windows
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
 } catch (e) {
@@ -11,18 +11,19 @@ try {
 let mongoMemoryServerInstance = null;
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/jobportal';
+  const rawUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/jobportal';
+  const uri = rawUri.trim().replace(/[\r\n]+/g, '');
 
   try {
-    // Attempt connection to configured MONGODB_URI
+    // Attempt connection to configured Mongo URI
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 10000,
     });
     console.log(`[Database] MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
     return conn;
   } catch (err) {
     console.warn(`[Database] Could not connect to MongoDB URI (${uri}): ${err.message}`);
-    
+
     // In local development or testing, spin up MongoMemoryServer fallback
     if (process.env.NODE_ENV !== 'production' || process.env.USE_MEMORY_DB === 'true') {
       try {
