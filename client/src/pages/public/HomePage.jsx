@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react';
-import { jobsApi } from '../../api/axios';
+import { jobsApi, statsApi } from '../../api/axios';
 import JobCard from '../../components/jobs/JobCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
@@ -20,23 +20,37 @@ export const HomePage = () => {
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
   const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [stats, setStats] = useState({
+    activeJobs: 0,
+    verifiedRecruiters: 0,
+    candidateResumes: 0,
+    totalApplications: 0,
+  });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchData = async () => {
       try {
-        const res = await jobsApi.getJobs({ limit: 6, sort: '-createdAt' });
-        if (res.data.success) {
-          setFeaturedJobs(res.data.jobs);
+        const [jobsRes, statsRes] = await Promise.allSettled([
+          jobsApi.getJobs({ limit: 6, sort: '-createdAt' }),
+          statsApi.getPublicStats(),
+        ]);
+
+        if (jobsRes.status === 'fulfilled' && jobsRes.value.data.success) {
+          setFeaturedJobs(jobsRes.value.data.jobs);
+        }
+
+        if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
+          setStats(statsRes.value.data.stats);
         }
       } catch (err) {
-        console.error('Error fetching featured jobs:', err);
+        console.error('Error fetching homepage data:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchJobs();
+    fetchData();
   }, []);
 
   const handleSearch = (e) => {
@@ -48,10 +62,10 @@ export const HomePage = () => {
   };
 
   const categories = [
-    { title: 'Software Engineering', count: '120+ Openings', icon: Zap, query: 'Software' },
-    { title: 'Frontend & React', count: '85+ Openings', icon: Briefcase, query: 'React' },
-    { title: 'Cloud & DevOps', count: '45+ Openings', icon: TrendingUp, query: 'DevOps' },
-    { title: 'UI/UX Design', count: '60+ Openings', icon: Users, query: 'Design' },
+    { title: 'Software Engineering', count: 'Explore Roles', icon: Zap, query: 'Software' },
+    { title: 'Frontend & React', count: 'Explore Roles', icon: Briefcase, query: 'React' },
+    { title: 'Cloud & DevOps', count: 'Explore Roles', icon: TrendingUp, query: 'DevOps' },
+    { title: 'UI/UX Design', count: 'Explore Roles', icon: Users, query: 'Design' },
   ];
 
   return (
@@ -125,24 +139,32 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* Stats Counter Bar */}
+      {/* Real-time Dynamic Stats Counter Bar */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-8 rounded-3xl bg-slate-900 text-white shadow-xl">
           <div className="text-center space-y-1">
-            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">1,500+</p>
+            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">
+              {stats.activeJobs}
+            </p>
             <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Active Jobs</p>
           </div>
           <div className="text-center space-y-1">
-            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">450+</p>
+            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">
+              {stats.verifiedRecruiters}
+            </p>
             <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Verified Recruiters</p>
           </div>
           <div className="text-center space-y-1">
-            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">25,000+</p>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Candidate Resumes</p>
+            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">
+              {stats.candidateResumes}
+            </p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Registered Candidates</p>
           </div>
           <div className="text-center space-y-1">
-            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">96%</p>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Hiring Match Rate</p>
+            <p className="text-3xl lg:text-4xl font-extrabold text-indigo-400">
+              {stats.totalApplications}
+            </p>
+            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Applications Submitted</p>
           </div>
         </div>
       </section>
@@ -201,11 +223,24 @@ export const HomePage = () => {
 
         {loading ? (
           <LoadingSpinner message="Loading latest opportunities..." />
-        ) : (
+        ) : featuredJobs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredJobs.map((job) => (
               <JobCard key={job._id} job={job} />
             ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-white rounded-3xl border border-slate-200/80 space-y-3">
+            <p className="text-sm font-semibold text-slate-700">No active job postings yet.</p>
+            <p className="text-xs text-slate-500">Sign in as a recruiter to post the first opportunity!</p>
+            <div className="pt-2">
+              <Link
+                to="/register?role=recruiter"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm"
+              >
+                Post a Job Opening
+              </Link>
+            </div>
           </div>
         )}
       </section>

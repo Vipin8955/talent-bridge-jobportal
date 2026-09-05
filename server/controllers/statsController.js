@@ -1,5 +1,33 @@
 const Job = require('../models/Job');
 const Application = require('../models/Application');
+const User = require('../models/User');
+
+// @desc    Get public real-time platform statistics
+// @route   GET /api/stats/public
+// @access  Public
+const getPublicStats = async (req, res, next) => {
+  try {
+    const [activeJobs, verifiedRecruiters, candidateResumes, totalApplications] =
+      await Promise.all([
+        Job.countDocuments({ status: 'active' }),
+        User.countDocuments({ role: 'recruiter' }),
+        User.countDocuments({ role: 'applicant' }),
+        Application.countDocuments(),
+      ]);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        activeJobs,
+        verifiedRecruiters,
+        candidateResumes,
+        totalApplications,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 // @desc    Get metrics and statistics for applicant dashboard
 // @route   GET /api/stats/applicant
@@ -91,6 +119,7 @@ const getRecruiterStats = async (req, res, next) => {
 };
 
 module.exports = {
+  getPublicStats,
   getApplicantStats,
   getRecruiterStats,
 };

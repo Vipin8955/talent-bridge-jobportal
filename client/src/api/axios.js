@@ -78,6 +78,7 @@ export const userApi = {
 };
 
 export const statsApi = {
+  getPublicStats: () => api.get('/stats/public'),
   getApplicantStats: () => api.get('/stats/applicant'),
   getRecruiterStats: () => api.get('/stats/recruiter'),
 };
